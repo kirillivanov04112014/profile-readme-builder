@@ -1,0 +1,142 @@
+
+const form = document.getElementById("profile-form");
+const preview = document.getElementById("preview-content");
+const markdownOutput = document.getElementById("markdown-output");
+const copyButton = document.getElementById("copy-button");
+const copyStatus = document.getElementById("copy-status");
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const username = document.getElementById("username").value.trim();
+  const name = document.getElementById("name").value.trim();
+  const about = document.getElementById("about").value.trim();
+  const skills = document.getElementById("skills").value.trim();
+  const website = document.getElementById("website").value.trim();
+
+  if (!/^[a-zA-Z0-9-]{1,39}$/.test(username)) {
+    alert("Please enter a valid GitHub username.");
+    return;
+  }
+
+  if (!name) {
+    alert("Please enter your name.");
+    return;
+  }
+
+  let safeWebsite = "";
+
+  if (website) {
+    try {
+      const parsedUrl = new URL(website);
+
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        throw new Error("Invalid protocol");
+      }
+
+      safeWebsite = parsedUrl.href;
+    } catch {
+      alert("Please enter a valid website URL starting with https://");
+      return;
+    }
+  }
+
+  const profileUrl = `https://github.com/${encodeURIComponent(username)}`;
+  const skillList = skills
+    ? skills.split(",").map((skill) => skill.trim()).filter(Boolean)
+    : [];
+
+  // Build the Markdown document.
+  let markdown = `# Hi, I'm ${name}! 👋
+
+Welcome to my GitHub profile!
+
+${about || "I'm exploring technology and building new projects."}
+
+## 🛠️ Technologies
+
+${skillList.length
+    ? skillList.map((skill) => `- ${skill}`).join("\n")
+    : "- Add your technologies here."}
+
+## 🔗 Links
+
+- [GitHub Profile](${profileUrl})`;
+
+  if (safeWebsite) {
+    markdown += `\n- [My Website](${safeWebsite})`;
+  }
+
+  // Build the preview safely without inserting user input as HTML.
+  preview.replaceChildren();
+
+  const heading = document.createElement("h2");
+  heading.textContent = `Hi, I'm ${name}! 👋`;
+  preview.appendChild(heading);
+
+  const introduction = document.createElement("p");
+  introduction.textContent =
+    about || "I'm exploring technology and building new projects.";
+  preview.appendChild(introduction);
+
+  const skillsHeading = document.createElement("h3");
+  skillsHeading.textContent = "🛠️ Technologies";
+  preview.appendChild(skillsHeading);
+
+  if (skillList.length) {
+    const list = document.createElement("ul");
+
+    skillList.forEach((skill) => {
+      const item = document.createElement("li");
+      item.textContent = skill;
+      list.appendChild(item);
+    });
+
+    preview.appendChild(list);
+  } else {
+    const emptySkills = document.createElement("p");
+    emptySkills.textContent = "Add your technologies here.";
+    preview.appendChild(emptySkills);
+  }
+
+  const linksHeading = document.createElement("h3");
+  linksHeading.textContent = "🔗 Links";
+  preview.appendChild(linksHeading);
+
+  const githubLink = document.createElement("a");
+  githubLink.href = profileUrl;
+  githubLink.textContent = "GitHub Profile";
+  githubLink.target = "_blank";
+  githubLink.rel = "noopener noreferrer";
+  preview.appendChild(githubLink);
+
+  if (safeWebsite) {
+    const separator = document.createTextNode(" · ");
+    const websiteLink = document.createElement("a");
+    websiteLink.href = safeWebsite;
+    websiteLink.textContent = "My Website";
+    websiteLink.target = "_blank";
+    websiteLink.rel = "noopener noreferrer";
+
+    preview.appendChild(separator);
+    preview.appendChild(websiteLink);
+  }
+
+  markdownOutput.value = markdown;
+  copyStatus.textContent = "README generated successfully!";
+});
+
+copyButton.addEventListener("click", async () => {
+  if (!markdownOutput.value) {
+    copyStatus.textContent = "Generate your README first.";
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(markdownOutput.value);
+    copyStatus.textContent = "Markdown copied successfully!";
+  } catch {
+    copyStatus.textContent =
+      "Copy failed. Please select and copy the Markdown manually.";
+  }
+});
